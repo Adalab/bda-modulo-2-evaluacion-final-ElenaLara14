@@ -14,11 +14,13 @@ Lo más utilizado ha sido:
 
 🔗 Uso de joins:
 
-- INNER JOIN: Combina solo las filas que tienen coincidencias en ambas tablas, basándose en una condición especificada.
+- INNER JOIN: Combina solo las filas que tienen coincidencias en ambas tablas.
 - LEFT JOIN: Combina todas las filas de la tabla izquierda con las coincidencias correspondientes de la tabla derecha. Las filas de   la izquierda se mantienen incluso si no tienen coincidencias.
-- RIGHT JOIN: Similar al left join, pero invierte el orden de las tablas. Combina todas las filas de la tabla derecha con las .
+- RIGHT JOIN: Similar al left join, pero cambia el orden de las tablas.
+- SELF JOIN: cruza la tabla consigo misma para comparar filas.
 
 - SUBCONSULTAS: Consultas correlacionadas.
+- CTE(Common Table Expressions).
 
 ## Contenido del Repositorio🧾
 

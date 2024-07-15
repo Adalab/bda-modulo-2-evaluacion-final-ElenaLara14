@@ -27,7 +27,7 @@ WHERE length > 120;
 
 -- 5. Recupera los nombres de todos los actores.
 
-SELECT first_name As Nombre, last_name AS Apellido
+SELECT first_name As Nombre
 FROM actor;
 
 -- 6. Encuentra el nombre y apellido de los actores que tengan "Gibson" en su apellido.
@@ -116,11 +116,18 @@ WHERE description LIKE '%dog%' OR description LIKE '%cat%';
 
 -- 15. Hay algún actor o actriz que no apareca en ninguna película en la tabla film_actor.
 -- uso left join para ver todos los registros de la tabla actores para que si uno es nulo y no aparezca en pelicula, nos de el resultado.
-SELECT fi.actor_id, a.first_name, a.last_name
+SELECT a.actor_id, fi.film_id
 FROM actor AS a
 LEFT JOIN film_actor AS fi
 USING (actor_id)
 WHERE fi.actor_id IS NULL;
+-- En este caso no hay ningún actor o actriz que no aparezca en ninguna película.
+
+-- SE PUEDE HACER CON OTRA OPCION MÁS SIMPLE, SACANDO ALGUN NULO DE LA TABLA FILM_ACTOR Y TAMBIEN DA REGISTRO VACIO.
+SELECT actor_id, film_id
+FROM film_actor
+WHERE film_id IS NULL;
+
 
 -- 16. Encuentra el título de todas las películas que fueron lanzadas entre el año 2005 y 2010.
 /* QUERY DE COMPROBACION
@@ -168,19 +175,18 @@ GROUP BY Nombre_categoria
 HAVING AVG(f.length) >120;
 
 -- 21. Encuentra los actores que han actuado en al menos 5 películas y muestra el nombre del actor junto con la cantidad de películas en las que han actuado.
-SELECT a.first_name AS Nombre ,  COUNT(fi.film_id) AS Numero_pelis_actuado
+SELECT a.first_name AS Nombre , COUNT(fi.film_id) AS Numero_pelis_actuadas
 FROM actor AS a
-INNER JOIN film_actor AS fi
-USING (actor_id)
+INNER JOIN film_actor AS fi USING (actor_id)
 GROUP BY fi.actor_id
-HAVING Numero_pelis_actuado >= 5;
+HAVING Numero_pelis_actuadas >= 5;
 
 -- 22. Encuentra el título de todas las películas que fueron alquiladas por más de 5 días. Utiliza una subconsulta para encontrar los rental_ids con una duración superior a 5 días y luego selecciona las películas correspondientes.
 
 -- 1º busco la información para hacer la subconsulta, he utilizado DATEDIFF mirando documentación SQL para encontrar la fórmula de diferencia de dias.
 (SELECT r.rental_id
-							FROM rental AS r
-							WHERE DATEDIFF(return_date, rental_date) > 5)
+			FROM rental AS r
+			WHERE DATEDIFF(return_date, rental_date) > 5)
                             
 -- 2º monto el resto de la consulta
 
@@ -196,7 +202,7 @@ WHERE r.rental_id IN (SELECT r.rental_id
 /*23. Encuentra el nombre y apellido de los actores que no han actuado en ninguna película de la categoría "Horror". Utiliza una subconsulta
 para encontrar los actores que han actuado en películas de la categoría "Horror" y luego exclúyelos de la lista de actores */
 
--- 1º busco la información y las relaciones para hacer la subconsulta
+-- 1º busco la información y las relaciones para hacer la subconsulta actores que han actuado en películas de la categoría "Horror"
 (SELECT a.actor_id
 FROM actor AS a
 INNER JOIN film_actor AS fi USING (actor_id)
@@ -220,17 +226,58 @@ DE FILM_ID A SU VEZ CON FILM_ACTOR PARA ACCEDER CON ACTOR_ID A ACTOR*/
 
 SELECT a.first_name AS nombre, a.last_name AS apellido
 FROM actor AS a
-WHERE a.actor_id NOT IN (SELECT fi.actor_id
+WHERE a.actor_id NOT IN (SELECT DISTINCT fi.actor_id
 							FROM film_actor AS fi
 							INNER JOIN film AS f USING (film_id)
 							INNER JOIN film_category AS fc USING (film_id)
                             INNER JOIN category AS c USING (category_id)
 							WHERE c.category_id =11);
 
+
+
 -- BONUS
 -- 24. BONUS: Encuentra el título de las películas que son comedias y tienen una duración mayor a 180 minutos en la tabla film.
+-- FORMA DE REALIZARLO CON JOINTS, MÁS RÁPIDA Y SIMPLE
+
+SELECT f.title
+FROM film AS f
+INNER JOIN film_category AS fc ON f.film_id = fc.film_id 
+INNER JOIN category AS c ON fc.category_id = c.category_id 
+WHERE c.name = 'Comedy' AND f.`length` > 180;
+
+-- FORMA DE HACERLO CON UNA CTE
+--  1º monto un CTE que nos diga el id y titulo de las peliculas cuya categoria es Comedia
+
+WITH Comedia AS (SELECT f.film_id, f.title
+				FROM film AS f
+				INNER JOIN film_category AS fc USING (film_id)
+				INNER JOIN category as c USING (category_id)
+				WHERE c.name = 'Comedy')
+                
+-- 2º estructuro la consulta princial  e introduzco la CTE
+SELECT f.title AS Titulo, ROUND(MAX(f.length),2) AS Duracion
+FROM film AS f
+JOIN Comedia AS co ON  f.film_id = co.film_id
+GROUP BY f.title
+HAVING MAX(f.length) >180;
 
 
 /*25. BONUS: Encuentra todos los actores que han actuado juntos en al menos una película. La consulta debe mostrar el nombre y apellido 
 de los actores y el número de películas en las que han actuado juntos.*/
+
+-- Tenemos que cruzar datos consigo mismo de FILM_ACTOR para saber los actores que han hecho una misma peli, por lo que es un SELF-JOIN
+
+SELECT a1.first_name AS Nombre_actor1, a1.last_name AS Apellido_actor1,
+       a2.first_name AS Nombre_actor2, a2.last_name AS Apellido_actor2,
+       COUNT(*) AS Cantidad_peliculas_juntos -- Cuenta todos los registros
+FROM film_actor AS fa1
+JOIN film_actor AS fa2 ON fa1.film_id = fa2.film_id AND fa1.actor_id < fa2.actor_id -- utiliza dos joins de la tabla film_actor consigo misma (fa1 y fa2) 
+-- para encontrar todos los pares de actores que han actuado juntos. La condición fa1.actor_id < fa2.actor_id asegura que cada par se cuente una vez y evita duplicados.
+JOIN actor a1 ON fa1.actor_id = a1.actor_id -- Se realiza también dos join con la tabla actor (a1 y a2) para obtener los actores que forman parte de cada par.
+JOIN actor a2 ON fa2.actor_id = a2.actor_id
+GROUP BY Nombre_actor1, Apellido_actor1, Nombre_actor2, Apellido_actor2
+HAVING COUNT(*) > 0 -- Condición que cumple que todos los registros donde hay al menos una película en la que cada par de actores ha actuado juntos.
+ORDER BY Cantidad_peliculas_juntos DESC; -- ordena de mayor num_pelis a menor
+
+
 
