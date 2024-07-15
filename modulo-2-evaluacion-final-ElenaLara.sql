@@ -168,14 +168,64 @@ GROUP BY Nombre_categoria
 HAVING AVG(f.length) >120;
 
 -- 21. Encuentra los actores que han actuado en al menos 5 películas y muestra el nombre del actor junto con la cantidad de películas en las que han actuado.
+SELECT a.first_name AS Nombre ,  COUNT(fi.film_id) AS Numero_pelis_actuado
+FROM actor AS a
+INNER JOIN film_actor AS fi
+USING (actor_id)
+GROUP BY fi.actor_id
+HAVING Numero_pelis_actuado >= 5;
+
 -- 22. Encuentra el título de todas las películas que fueron alquiladas por más de 5 días. Utiliza una subconsulta para encontrar los rental_ids con una duración superior a 5 días y luego selecciona las películas correspondientes.
+
+-- 1º busco la información para hacer la subconsulta, he utilizado DATEDIFF mirando documentación SQL para encontrar la fórmula de diferencia de dias.
+(SELECT r.rental_id
+							FROM rental AS r
+							WHERE DATEDIFF(return_date, rental_date) > 5)
+                            
+-- 2º monto el resto de la consulta
+
+SELECT DISTINCT f.title
+FROM film AS f
+LEFT JOIN inventory AS i USING(film_id)
+LEFT JOIN rental AS r USING (inventory_id)
+WHERE r.rental_id IN (SELECT r.rental_id
+							FROM rental AS r
+							WHERE DATEDIFF(return_date, rental_date) > 5);
 
 
 /*23. Encuentra el nombre y apellido de los actores que no han actuado en ninguna película de la categoría "Horror". Utiliza una subconsulta
 para encontrar los actores que han actuado en películas de la categoría "Horror" y luego exclúyelos de la lista de actores */
 
+-- 1º busco la información y las relaciones para hacer la subconsulta
+(SELECT a.actor_id
+FROM actor AS a
+INNER JOIN film_actor AS fi USING (actor_id)
+INNER JOIN film_category AS fc USING (film_id)
+INNER JOIN category AS c USING (category_id)
+WHERE c.name = 'Horror')
 
+-- 2º monto el resto de la consulta EXCLUYENDO a los de Horror
 
+SELECT a.first_name AS Nombre, a.last_name AS Apellido
+FROM actor AS a
+WHERE a.actor_id NOT IN (SELECT DISTINCT a.actor_id
+						FROM actor AS a
+							INNER JOIN film_actor AS fi USING (actor_id)
+							INNER JOIN film_category AS fc USING (film_id)
+							INNER JOIN category AS c USING (category_id)
+								WHERE c.name = 'Horror')
+
+/*OTRA MANERA DE HACERLO ES MEDIANTE LA CATEGORIA 11 QUE ES HORROR EN LA TABLA CATEGORY QUE SE CRUZA CON FILM CATEGORY A TRAVÉS 
+DE FILM_ID A SU VEZ CON FILM_ACTOR PARA ACCEDER CON ACTOR_ID A ACTOR*/
+
+SELECT a.first_name AS nombre, a.last_name AS apellido
+FROM actor AS a
+WHERE a.actor_id NOT IN (SELECT fi.actor_id
+							FROM film_actor AS fi
+							INNER JOIN film AS f USING (film_id)
+							INNER JOIN film_category AS fc USING (film_id)
+                            INNER JOIN category AS c USING (category_id)
+							WHERE c.category_id =11);
 
 -- BONUS
 -- 24. BONUS: Encuentra el título de las películas que son comedias y tienen una duración mayor a 180 minutos en la tabla film.
