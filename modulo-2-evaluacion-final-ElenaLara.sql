@@ -255,7 +255,7 @@ WITH Comedia AS (SELECT f.film_id, f.title
 				WHERE c.name = 'Comedy')
                 
 -- 2º estructuro la consulta princial  e introduzco la CTE
-SELECT f.title AS Titulo, ROUND(MAX(f.length),2) AS Duracion
+SELECT f.title AS Titulo, ROUND(MAX(f.length),2) AS Duracion -- uso MAX para usar la función GROUP BY y me dé el maximo de duración.
 FROM film AS f
 JOIN Comedia AS co ON  f.film_id = co.film_id
 GROUP BY f.title
